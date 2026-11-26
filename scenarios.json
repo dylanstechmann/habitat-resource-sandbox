@@ -1,0 +1,65 @@
+{
+  "schema": "synthetic-habitat-resources/1",
+  "scenarios": [
+    {
+      "id": "desert-underground",
+      "step_hours": 6,
+      "initial_energy_kwh": 30,
+      "energy_capacity_kwh": 50,
+      "initial_water_l": 140,
+      "water_capacity_l": 200,
+      "recovery_fraction": 0.70,
+      "steps": [
+        {"event": "daytime supply", "supply_kw": 12, "load_kw": 6, "import_l_per_hour": 5, "demand_l_per_hour": 18},
+        {"event": "water delivery interruption", "supply_kw": 9, "load_kw": 6, "import_l_per_hour": 0, "demand_l_per_hour": 18},
+        {"event": "night with no delivery", "supply_kw": 0, "load_kw": 5, "import_l_per_hour": 0, "demand_l_per_hour": 18},
+        {"event": "delivery returns", "supply_kw": 2, "load_kw": 5, "import_l_per_hour": 5, "demand_l_per_hour": 18}
+      ]
+    },
+    {
+      "id": "moon",
+      "step_hours": 6,
+      "initial_energy_kwh": 22,
+      "energy_capacity_kwh": 40,
+      "initial_water_l": 135,
+      "water_capacity_l": 150,
+      "recovery_fraction": 0.72,
+      "steps": [
+        {"event": "illuminated period", "supply_kw": 11, "load_kw": 5, "import_l_per_hour": 0, "demand_l_per_hour": 12},
+        {"event": "shadow begins", "supply_kw": 0, "load_kw": 5, "import_l_per_hour": 0, "demand_l_per_hour": 12},
+        {"event": "continued shadow", "supply_kw": 0, "load_kw": 5, "import_l_per_hour": 0, "demand_l_per_hour": 12},
+        {"event": "illumination returns", "supply_kw": 11, "load_kw": 5, "import_l_per_hour": 0, "demand_l_per_hour": 12}
+      ]
+    },
+    {
+      "id": "mars",
+      "step_hours": 6,
+      "initial_energy_kwh": 20,
+      "energy_capacity_kwh": 45,
+      "initial_water_l": 145,
+      "water_capacity_l": 150,
+      "recovery_fraction": 0.70,
+      "steps": [
+        {"event": "nominal generation", "supply_kw": 9, "load_kw": 6, "import_l_per_hour": 0, "demand_l_per_hour": 12},
+        {"event": "dust reduces generation", "supply_kw": 3, "load_kw": 6, "import_l_per_hour": 0, "demand_l_per_hour": 12},
+        {"event": "deep dust interruption", "supply_kw": 1, "load_kw": 6, "import_l_per_hour": 0, "demand_l_per_hour": 12},
+        {"event": "partial recovery", "supply_kw": 7, "load_kw": 6, "import_l_per_hour": 0, "demand_l_per_hour": 12}
+      ]
+    },
+    {
+      "id": "underwater",
+      "step_hours": 6,
+      "initial_energy_kwh": 52,
+      "energy_capacity_kwh": 65,
+      "initial_water_l": 180,
+      "water_capacity_l": 190,
+      "recovery_fraction": 0.60,
+      "steps": [
+        {"event": "surface supply available", "supply_kw": 11, "load_kw": 8, "import_l_per_hour": 6, "demand_l_per_hour": 15},
+        {"event": "surface supply interrupted", "supply_kw": 0, "load_kw": 8, "import_l_per_hour": 0, "demand_l_per_hour": 15},
+        {"event": "interruption continues", "supply_kw": 0, "load_kw": 8, "import_l_per_hour": 0, "demand_l_per_hour": 15},
+        {"event": "surface supply returns", "supply_kw": 11, "load_kw": 8, "import_l_per_hour": 6, "demand_l_per_hour": 15}
+      ]
+    }
+  ]
+}
