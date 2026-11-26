@@ -44,6 +44,14 @@ The agent-run reserve calculation gave these minimum values for the hour 6–18 
 
 All four fixtures needed both more electricity in storage at the start and greater energy capacity. With continuous recovery, the desert fixture also needed 5.20 L more starting water. Each fixture's existing water capacity was sufficient for the modeled window.
 
+Use `--reserve-end ENERGY_KWH WATER_L` to calculate reserves for meeting both loads and leaving specified stocks at the end. The targets apply to every selected run, including both sides of an interruption comparison. The water target counts stored water. The report tracks pending recovery separately. Each reserve section records its target as `minimum_final_stock`.
+
+```bash
+python3 habitat.py scenarios.json --scenario desert-underground --interrupt 6 18 --reserve-end 12 20
+```
+
+In the interrupted desert fixture, retaining 12 kWh requires 60 kWh of starting energy and 96 kWh of capacity. Retaining 20 L requires 165.20 L of starting water and the same capacity. These values describe the one modeled day. Use the original `--reserve` option to calculate reserves with zero required end stock.
+
 The included standard-library checks cover interruption boundaries, recovery, resource balance, and forward simulation at the calculated reserves. Run them with `python3 -B -m unittest -v` from this directory.
 
 The model borrows the interval-ledger approach from the Open Construction Equipment microgrid study. Its qualitative disruptions are motivated by documented lunar illumination, Martian dust, an underwater habitat’s dependence on surface utilities, and desert water constraints. All fixture quantities and outage lengths were selected for illustration. This conceptual model has ideal storage, anonymous resource loads and one simplified water loop. Real occupancy requires separate atmospheric, water-quality, thermal, structural, egress and safety analysis. [Source microgrid model](https://github.com/dylanstechmann/open-construction-equipment/blob/42783cadb5fcb72f2dbd9dd56986a3050d8e8595/docs/powertrain-microgrid.md)
