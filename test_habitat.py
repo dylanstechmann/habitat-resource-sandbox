@@ -109,6 +109,39 @@ class InterruptionTests(unittest.TestCase):
                     low_run = compare_interruption(lower_stock, 6, 18)["interrupted"]
                     self.assertGreater(low_run[unmet], 0)
 
+    def test_cli_reserve_end_retains_stock_after_an_interruption(self):
+        folder = Path(__file__).resolve().parent
+        cli = [sys.executable, str(folder / "habitat.py"), str(folder / "scenarios.json"),
+               "--scenario", "desert-underground", "--interrupt", "6", "18", "--reserve-end"]
+        report = json.loads(subprocess.check_output(cli + ["12", "20"]))["runs"][0]
+        energy = report["interrupted"]["reserve"]["energy_kwh"]
+        water = report["interrupted"]["reserve"]["water_l"]
+        for ledger in (report["baseline"], report["interrupted"]):
+            self.assertEqual(ledger["reserve"]["energy_kwh"]["minimum_final_stock"], 12)
+            self.assertEqual(ledger["reserve"]["water_l"]["minimum_final_stock"], 20)
+        self.assertEqual(energy["minimum_initial_stock"], 60)
+        self.assertEqual(energy["minimum_capacity"], 96)
+        self.assertAlmostEqual(water["minimum_initial_stock"], 165.2)
+        self.assertAlmostEqual(water["minimum_capacity"], 165.2)
+
+        revised = {
+            **self.scenarios["desert-underground"],
+            "initial_energy_kwh": energy["minimum_initial_stock"],
+            "energy_capacity_kwh": energy["minimum_capacity"],
+            "initial_water_l": water["minimum_initial_stock"],
+            "water_capacity_l": water["minimum_capacity"],
+        }
+        replay = compare_interruption(revised, 6, 18)["interrupted"]
+        self.assertEqual(replay["unmet_energy_kwh"], 0)
+        self.assertEqual(replay["unmet_water_l"], 0)
+        self.assertEqual(replay["final_energy_kwh"], 12)
+        self.assertAlmostEqual(replay["final_water_l"], 20)
+        self.assertAlmostEqual(replay["water_pending_recovery_l"], 75.6)
+
+        invalid = subprocess.run(cli + ["0", "nan"], capture_output=True, text=True)
+        self.assertEqual(invalid.returncode, 2)
+        self.assertIn("final water target must be a finite number", invalid.stderr)
+
     def test_minimum_capacity_can_exceed_minimum_starting_stock(self):
         scenario = {
             "id": "early-surplus",
@@ -131,6 +164,12 @@ class InterruptionTests(unittest.TestCase):
             "initial_stock": 0, "capacity": 2, "minimum_initial_stock": 0,
             "minimum_capacity": 10, "additional_initial_stock": 0, "additional_capacity": 8,
         })
+        # When surplus arrives in the last interval, the finish target can set
+        # the capacity even though no stock is needed at earlier boundaries.
+        terminal_surplus = {**scenario, "steps": scenario["steps"][:1]}
+        reserve = simulate(terminal_surplus, reserve_end=(10, 0))["reserve"]["energy_kwh"]
+        self.assertEqual(reserve["minimum_initial_stock"], 0)
+        self.assertEqual(reserve["minimum_capacity"], 10)
 
 
 if __name__ == "__main__":
