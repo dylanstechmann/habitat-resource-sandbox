@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+import subprocess
+import sys
 import unittest
 
 from habitat import compare_interruption, simulate
@@ -38,6 +40,44 @@ class InterruptionTests(unittest.TestCase):
         self.assertEqual(report["interrupted"], report["baseline"])
         self.assertEqual(report["summary"]["energy_kwh"]["interrupted"]["restored_hour"], 18)
         self.assertIsNone(report["summary"]["water_l"]["interrupted"]["restored_hour"])
+
+    def test_selective_outages_preserve_other_inputs_and_propagate_recovery(self):
+        scenario = self.scenarios["desert-underground"]
+        baseline = simulate(scenario, reserve=True)
+        power = compare_interruption(scenario, 0, 6, supply="power", reserve=True)
+        water = compare_interruption(scenario, 0, 6, supply="water", reserve=True)
+        for name, report in (("power", power), ("water", water)):
+            self.assertEqual(report["interrupted_supply"], name)
+            self.assertEqual(report["baseline"], baseline)
+        power_steps = power["interrupted"]["intervals"]
+        water_steps = water["interrupted"]["intervals"]
+        self.assertEqual(power_steps[0]["energy_kwh"]["supply"], 0)
+        self.assertEqual(power_steps[0]["import_l"], 30)
+        self.assertEqual(power_steps[1]["recovered_from_previous_l"], 0)
+        self.assertEqual(water_steps[0]["energy_kwh"], baseline["intervals"][0]["energy_kwh"])
+        self.assertEqual(water_steps[0]["import_l"], 0)
+        self.assertAlmostEqual(water_steps[1]["recovered_from_previous_l"], 75.6)
+        self.assertAlmostEqual(power["summary"]["water_l"]["additional_unmet"], 181.44)
+        self.assertAlmostEqual(water["summary"]["water_l"]["additional_unmet"], 51.196)
+        self.assertEqual(power["interrupted"]["reserve"]["water_l"], baseline["reserve"]["water_l"])
+        self.assertEqual(water["interrupted"]["reserve"]["energy_kwh"], baseline["reserve"]["energy_kwh"])
+        with self.assertRaisesRegex(ValueError, "interrupted supply"):
+            compare_interruption(scenario, 0, 6, supply="storage")
+
+    def test_cli_supply_selection_and_default_output(self):
+        folder = Path(__file__).resolve().parent
+        cli = [sys.executable, str(folder / "habitat.py"), str(folder / "scenarios.json"),
+               "--scenario", "desert-underground"]
+        window = ["--interrupt", "0", "6"]
+        original = subprocess.check_output(cli + window)
+        self.assertEqual(original, subprocess.check_output(cli + window + ["--interrupt-supply", "both"]))
+        self.assertNotIn("interrupted_supply", json.loads(original)["runs"][0])
+        explicit = json.loads(subprocess.check_output(cli + window + ["--interrupt-supply", "power"]))
+        expected = compare_interruption(self.scenarios["desert-underground"], 0, 6, supply="power")
+        self.assertEqual(explicit["runs"][0], expected)
+        missing = subprocess.run(cli + ["--interrupt-supply", "both"], capture_output=True, text=True)
+        self.assertEqual(missing.returncode, 2)
+        self.assertIn("--interrupt-supply requires --interrupt", missing.stderr)
 
     def test_fractional_boundaries_and_invalid_windows(self):
         scenario = {**self.scenarios["moon"], "step_hours": 0.1}
