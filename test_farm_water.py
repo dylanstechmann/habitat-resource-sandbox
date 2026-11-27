@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from farm_water import compare
+from farm_water import compare, replay
 
 
 EXAMPLES = Path(__file__).parent / "examples"
@@ -26,6 +26,41 @@ class FarmWaterTests(unittest.TestCase):
             self.assertAlmostEqual(case["initial_stock_l"] + case["makeup_l"] + case["farm_recovered_l"],
                                    case["delivered_l"] + case["overflow_l"] + case["final_stock_l"])
         self.assertLess(cases["habitat_reclaimed_only"]["unmet_l"], cases["no_makeup"]["unmet_l"])
+
+    def test_as_needed_supply_tracks_arrival_time_reserve_and_closing_stock(self):
+        rows = [{"start_minute": minute, "agricultural_water_l": {
+                    "requested_withdrawal": 5, "recovered": 1}} for minute in [0, 720]]
+        # Late reclaimed water cannot serve an earlier withdrawal.
+        late = replay(rows, 10, 2, 3, [0, 20], minimum_stocks=(3, 3))
+        self.assertEqual(late["supplemental_l"], 5)
+        self.assertEqual(late["first_supplement_minute"], 0)
+        self.assertEqual(late["peak_supplement_minute"], 0)
+        self.assertEqual(late["overflow_l"], 9)
+        self.assertEqual(late["unmet_l"], 0)
+        self.assertEqual(late["final_stock_l"], 10)
+        early = replay(rows, 10, 2, 3, [20, 0], minimum_stocks=(3, 3))
+        self.assertEqual(early["supplemental_l"], 0)
+        self.assertIsNone(early["first_supplement_minute"])
+        self.assertIsNone(early["peak_supplement_minute"])
+        restored = replay(rows, 10, 8, 3, [0, 0], minimum_stocks=(3, 8))
+        self.assertEqual(restored["peak_supplement_interval_l"], 8)
+        self.assertEqual(restored["peak_supplement_minute"], 720)
+        self.assertEqual(restored["final_stock_l"], 8)
+
+    def test_optional_budgets_balance_and_preserve_original_cases(self):
+        plain = compare(REPORT, HANDOFF, PROFILES, "earth-underground", 2)
+        result = compare(REPORT, HANDOFF, PROFILES, "earth-underground", 2, makeup_budget=True)
+        budgets = result.pop("supplemental_water_budgets")
+        self.assertEqual(result, plain)
+        reclaimed = plain["cases"]["habitat_reclaimed_only"]["makeup_l"]
+        for case in budgets.values():
+            self.assertEqual(case["unmet_l"], 0)
+            self.assertEqual(case["makeup_l"], reclaimed + case["supplemental_l"])
+            self.assertEqual(case["initial_stock_l"] + case["makeup_l"] + case["farm_recovered_l"],
+                             case["delivered_l"] + case["overflow_l"] + case["final_stock_l"])
+        restored = budgets["maintain_reserve_and_restore_opening_stock"]
+        self.assertEqual(restored["below_reserve_intervals"], 0)
+        self.assertGreaterEqual(restored["final_stock_l"], restored["initial_stock_l"])
 
     def test_receipts_between_farm_boundaries_wait_until_next_opening(self):
         profiles = json.loads(PROFILES.read_bytes())

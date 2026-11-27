@@ -81,6 +81,8 @@ python3 -B farm_water.py examples/indoor-grow-aggregate.json examples/farm-water
 ```
 
 The same command accepts a full daily farm report and its reservoir handoff.
+Add `--makeup-budget` to see the extra water needed to serve withdrawals or
+maintain the farm reserve and restore its starting inventory.
 [Farm water budget comparison](docs/wastewater-recycling.md#how-much-farm-makeup-water-can-treatment-replace)
 
 `indoor_import.py` is a separate, standard-library-only **offline aggregate comparison/import adapter** for `rural-florida-agriculture` indoor interval output. It requires an explicit input path; it never discovers sibling repositories, reads a default producer path, accesses the network, or modifies `scenarios.json`.
