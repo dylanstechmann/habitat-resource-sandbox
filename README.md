@@ -2,6 +2,30 @@
 
 An AI-assisted hobby and learning prototype inspired by the closed-loop living premise of *Silo*. The model compares power and water shortages during four synthetic disruptions. Each example covers 24 hours. Supply, demand, storage and recovery inputs are editable in `scenarios.json`.
 
+## Underground habitat autonomy
+
+How long can a subsurface habitat meet demand if deliveries stop? Run the
+Earth, Moon and Mars comparison for 30 synthetic days. It tracks stored
+electricity, bulk water and dry food across days, including delayed recovery
+and harvests.
+
+```sh
+python3 -B autonomy.py examples/subsurface-profiles.json --cycles 30
+python3 -B autonomy.py examples/subsurface-profiles.json --scenario moon-subsurface --cycles 10 --trace
+python3 -B cycle_study.py --cycles 365 --lunar-water-cost 4
+```
+
+With the sample assumptions and deliveries disabled, the Earth fixture served
+all three loads over 720 hours. The lunar fixture first missed water demand at
+hour 168. The Mars fixture first missed food demand at hour 120. The
+[underground habitat study](docs/subsurface-autonomy.md) gives the inputs,
+resource balances and the one-year comparison. It also shows how an assumed
+power cost for collecting more lunar water can shift the bottleneck to
+electricity. The study identifies what still needs to be modeled to assess
+full sustainability.
+
+## Single-day disruptions
+
 ```bash
 python3 habitat.py scenarios.json
 python3 habitat.py scenarios.json --scenario moon
