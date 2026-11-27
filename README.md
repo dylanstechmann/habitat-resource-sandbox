@@ -24,6 +24,23 @@ power cost for collecting more lunar water can shift the bottleneck to
 electricity. The study identifies what still needs to be modeled to assess
 full sustainability.
 
+## Wastewater recovery and hydroponics
+
+Compare treating captured wastewater with bypassing treatment in the Earth,
+Moon and Mars fixtures. The treatment ledger tracks reclaimed water,
+fertilizer-equivalent nutrients, residual waste and electricity. Reclaimed
+water and nutrients enter the simulated hydroponic reservoirs.
+
+```sh
+python3 -B recycling.py examples/wastewater-recycling.json --cycles 30
+python3 -B recycling.py examples/wastewater-recycling.json --scenario moon-subsurface --no-exercise --trace
+```
+
+Solar generation and exercise generation are separate electricity inputs.
+Grow lighting is part of the base electrical load. The
+[wastewater model](docs/wastewater-recycling.md) describes the assumptions
+and the boundary between these resource budgets and water or fertilizer quality.
+
 ## Single-day disruptions
 
 ```bash
