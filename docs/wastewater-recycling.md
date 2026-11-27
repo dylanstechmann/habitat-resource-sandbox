@@ -82,6 +82,38 @@ remains a scheduled input even if withdrawals run short. The habitat model
 supplies treatment electricity. The comparison assumes ideal transfer and
 does not calculate pumping energy, nutrient compatibility or water quality.
 
+## Minimum additional water after treatment
+
+Add `--makeup-budget` to the farm comparison to calculate the smallest
+additional supply needed after farm recovery and eligible treatment receipts.
+One budget serves withdrawals while allowing the farm to draw down its tank.
+The other keeps at least the farm reserve at every interval end and restores
+at least the opening stock at the final interval. The final target is the
+larger of reserve and opening stock.
+
+In each interval the farm adds only the water missing to cover withdrawals
+and that interval's ending target. Earlier deliveries cannot reduce this
+total and can overflow the tank. This calculation assumes water can arrive
+in any required quantity in that interval. The peak interval amount gives
+the largest such delivery. Peaks can include refilling the tank on the last
+interval. Delivery times are interval start minutes from the study opening.
+`makeup_l` includes both reclaimed receipts and the additional supply.
+`supplemental_l` counts just the additional supply.
+
+| Full farm fixture, agent-run | Reclaimed water received | Additional water to serve withdrawals | Additional water to maintain reserve and restore opening stock |
+| --- | ---: | ---: | ---: |
+| 30 days | 348 L | 4,302 L | 4,602 L |
+| 365 days | 4,368 L | 55,557 L | 55,857 L |
+
+These transferred volumes matched across the three illustrative profiles.
+At 30 days, Earth and Moon produced 354 L with 6 L pending transfer. Mars
+produced 348 L with no pending transfer. Serving withdrawals alone used up
+the opening 300 L and required the first additional delivery at hour 44.
+Maintaining reserve required a delivery at hour 11. The closing refill
+accounted for the largest interval delivery of 105 L. Calculating a water
+budget does not establish water quality, pumping capacity or nutrient
+adequacy.
+
 NASA's ISS water recovery work informs the water-reuse context. ESA's MELiSSA
 work identifies nutrient recovery as a separate part of a closed water and
 food loop. The fixture coefficients are illustrative. [NASA water recovery demonstration](https://www.nasa.gov/missions/station/iss-research/nasa-achieves-water-recovery-milestone-on-international-space-station/) · [ESA closed water loop](https://www.esa.int/ESA_Multimedia/Images/2019/10/Closed_water_loop)

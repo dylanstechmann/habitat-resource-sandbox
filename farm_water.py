@@ -10,7 +10,12 @@ from indoor_import import TOLERANCE, _load_json, compare_indoor
 from recycling import audit
 
 
-def replay(rows, capacity, initial, reserve, makeup):
+def replay(rows, capacity, initial, reserve, makeup, *, minimum_stocks=None):
+    """Optionally buy just enough water for demand and the interval/closing stock floors."""
+    supplemental_l = 0.0
+    peak_l = 0.0
+    first_minute = None
+    peak_minute = None
     stock = initial
     first_shortfall = None
     totals = dict(makeup_l=0.0, farm_recovered_l=0.0, delivered_l=0.0,
@@ -19,7 +24,21 @@ def replay(rows, capacity, initial, reserve, makeup):
     for i, supplied in enumerate(makeup):
         row = rows[i % len(rows)]
         farm = row["agricultural_water_l"]
-        flow = ledger(stock, supplied + farm["recovered"], farm["requested_withdrawal"], capacity)
+        available_supply = supplied + farm["recovered"]
+        demand = farm["requested_withdrawal"]
+        if minimum_stocks is not None:
+            floor = minimum_stocks[1] if i == len(makeup) - 1 else minimum_stocks[0]
+            extra = max(0.0, (demand + floor) - (stock + available_supply))
+            if extra > 0:
+                minute = i // len(rows) * 1440 + row["start_minute"]
+                if first_minute is None:
+                    first_minute = minute
+                if extra > peak_l:
+                    peak_l, peak_minute = extra, minute
+            supplemental_l += extra
+            available_supply += extra
+            supplied += extra
+        flow = ledger(stock, available_supply, demand, capacity)
         stock = flow["end"]
         totals["makeup_l"] += supplied
         totals["farm_recovered_l"] += farm["recovered"]
@@ -29,11 +48,15 @@ def replay(rows, capacity, initial, reserve, makeup):
         below_reserve += stock < reserve
         if first_shortfall is None and flow["unmet"]:
             first_shortfall = i // len(rows) * 1440 + row["start_minute"]
+    if minimum_stocks is not None:
+        totals.update(supplemental_l=supplemental_l, first_supplement_minute=first_minute,
+                      peak_supplement_interval_l=peak_l, peak_supplement_minute=peak_minute,
+                      interval_end_floor_l=minimum_stocks[0], closing_floor_l=minimum_stocks[1])
     return {**totals, "initial_stock_l": initial, "final_stock_l": stock,
             "first_shortfall_minute": first_shortfall, "below_reserve_intervals": below_reserve}
 
 
-def compare(report_path, handoff_path, profiles_path, scenario, days):
+def compare(report_path, handoff_path, profiles_path, scenario, days, *, makeup_budget=False):
     handoff, _, handoff_hash = _load_json(handoff_path)
     if (not isinstance(handoff, dict) or handoff.get("schema") != "synthetic-farm-water-handoff/1"
             or not isinstance(handoff.get("report_sha256"), str)):
@@ -84,7 +107,7 @@ def compare(report_path, handoff_path, profiles_path, scenario, days):
     pending = sum(batch["reclaimed_water_l"] for batch in batches[batch_index:])
     alternatives = {"scheduled_farm_makeup": scheduled, "no_makeup": [0.0] * len(receipts),
                     "habitat_reclaimed_only": receipts}
-    return {
+    result = {
         "schema": "synthetic-farm-reclaimed-water-comparison/1", "scenario": scenario, "days": days,
         "farm_report_sha256": farm["source"]["sha256"], "handoff_sha256": handoff_hash,
         "recycling_profiles_sha256": profile_hash, "reservoir_capacity_l": capacity,
@@ -93,6 +116,14 @@ def compare(report_path, handoff_path, profiles_path, scenario, days):
         "cases": {name: replay(rows, capacity, initial, reserve, supply)
                   for name, supply in alternatives.items()},
     }
+    if makeup_budget:
+        floors = {"meet_withdrawals": (0.0, 0.0),
+                  "maintain_reserve_and_restore_opening_stock": (reserve, max(reserve, initial))}
+        result["supplemental_water_budgets"] = {
+            name: replay(rows, capacity, initial, reserve, receipts, minimum_stocks=targets)
+            for name, targets in floors.items()
+        }
+    return result
 
 
 def main():
@@ -102,10 +133,12 @@ def main():
     parser.add_argument("recycling_profiles", type=Path)
     parser.add_argument("--scenario", required=True)
     parser.add_argument("--days", type=int, default=30)
+    parser.add_argument("--makeup-budget", action="store_true",
+                        help="Calculate minimum additional farm water after reclaimed transfers")
     args = parser.parse_args()
     try:
         result = compare(args.farm_report, args.water_handoff, args.recycling_profiles,
-                         args.scenario, args.days)
+                         args.scenario, args.days, makeup_budget=args.makeup_budget)
     except (OSError, KeyError, TypeError, ValueError) as error:
         parser.error(str(error))
     print(json.dumps(result, indent=2, allow_nan=False))
