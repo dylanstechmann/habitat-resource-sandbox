@@ -2,7 +2,7 @@
 
 ## Synthetic resource software only
 
-Habitat Resource Sandbox is an AI-assisted hobby and learning model of aggregate electrical energy and bulk water. The subsurface autonomy study also tracks dry food mass in a pantry. Its scenarios, outage windows, recovery fractions, stock calculations, and reports are synthetic illustrations. They are not occupancy approval, life-support certification, a safety case, or recommendations for a real habitat.
+Habitat Resource Sandbox is an AI-assisted hobby and learning model of aggregate electrical energy and bulk water. The subsurface autonomy study also tracks dry food mass in a pantry. The [wastewater study](wastewater-recycling.md) tracks reclaimed water, fertilizer-equivalent nutrients, and residual waste using assumed recovery fractions. Its scenarios, outage windows, recovery fractions, stock calculations, and reports are synthetic illustrations. They are not occupancy approval, life-support certification, a safety case, or recommendations for a real habitat.
 
 No output establishes that a habitat is safe to occupy or operate. The reserve calculation applies only to the entered synthetic loads and its stated idealized assumptions; it is not an occupancy sizing method and does not establish required reserves for people.
 
@@ -14,7 +14,7 @@ The software does **not** model or verify any of the following:
 - **Thermal conditions and humidity:** heat generation or rejection, temperature control, condensation, humidity, or environmental limits.
 - **Water quality:** potability, contaminants, microbial control, treatment performance, or whether the simplified recovered-water stream is usable for any particular purpose.
 - **Food:** nutrition, calories, spoilage, food preparation, and agricultural production. The autonomy study takes potential harvest as an input and tracks its mass through ideal storage.
-- **Waste:** human or solid waste, hazardous waste, sanitation, or detailed wastewater chemistry. The single water-recovery fraction is not a waste-treatment model.
+- **Waste:** collection and sanitation, solid and hazardous waste handling, and wastewater chemistry. The wastewater study starts with captured feed and accounts for the quantities kept in storage, recovered, and discharged.
 - **Structural integrity:** loads, materials, fatigue, damage, foundations, or structural safety factors.
 - **Pressure:** vessel or compartment integrity, pressure differentials, leaks, decompression, or pressure-control systems.
 - **Radiation:** source terms, shielding, dose, exposure limits, or radiation monitoring.
@@ -23,7 +23,7 @@ The software does **not** model or verify any of the following:
 - **Rescue:** detection, alarms, communications, emergency response, rescue access, or external support availability.
 - **Occupancy requirements:** headcount-dependent needs, metabolic loads, habitability, human factors, medical support, or regulatory occupancy criteria.
 
-Also outside the model are equipment reliability and maintenance, common-cause failures, storage degradation, sensor and control behavior, energy conversion efficiency, detailed fluid inventories, redundancy, emergency procedures, and applicable codes or standards. Electrical and water quantities are not tied to named devices or verified engineering loads.
+Also outside the model are equipment reliability and maintenance, common-cause failures, storage degradation, sensor and control behavior, detailed fluid inventories, redundancy, emergency procedures, and applicable codes or standards. The exercise generation calculation uses a fixed, assumed conversion efficiency. Electrical and water quantities are not tied to named devices or verified engineering loads.
 
 ## Appropriate interpretation
 

@@ -79,7 +79,7 @@ Interrupting incoming power therefore interrupts later recovery only when the re
 
 ## Selective supply interruptions
 
-`compare_interruption(scenario, start_hour, end_hour, reserve=False, supply="both")` first simulates the unchanged scenario, then simulates a shallow-copied step list. The original scenario is not mutated. For every step wholly selected by `[start_hour, end_hour)`, the interruption sets:
+`compare_interruption(scenario, start_hour, end_hour, reserve=False, supply="both", reserve_end=None)` first simulates the unchanged scenario, then simulates a shallow-copied step list. The original scenario is not mutated. For every step wholly selected by `[start_hour, end_hour)`, the interruption sets:
 
 | `supply` | Inputs set to zero | Inputs left unchanged |
 | --- | --- | --- |
@@ -113,6 +113,8 @@ additional_capacity = max(0, minimum_capacity - configured_capacity)
 ```
 
 This allows a later interval's required stock to be charged by earlier incoming supply. Surplus cannot create a negative stock requirement. The capacity result is the largest stock required at any interval boundary, which can exceed the minimum starting stock.
+
+`reserve_end=(ENERGY_KWH, WATER_L)` and the CLI option `--reserve-end ENERGY_KWH WATER_L` instead require specified stocks after the final step, without requiring `reserve=True`. Each target must be a finite number in `[0, 1_000_000_000]`. The backward pass starts from `required_stock_N = minimum_final_stock` for each resource, and the target is included in the capacity maximum. Each reserve section then records `minimum_final_stock`. The targets apply to every selected run, including baseline and interrupted ledgers. Stored water alone counts toward the water target; pending recovery remains separate. `--reserve` without `--reserve-end` retains the zero-final-stock calculation above.
 
 The water reserve calculation is deliberately idealized: it assumes the full electrical load is met throughout and the full water demand is delivered, so every step contributes `recovery_fraction * water_demand_i` to the next step. Assumed recovery before the first step is zero. These recovery assumptions are also used when calculating a reserve report for an interrupted run; actual simulated shortfalls do not alter them. In particular, a power-only outage can leave the water reserve calculation unchanged even though its forward simulation loses recovery. Reserve outputs are therefore not a guarantee of served loads during an actual power shortfall.
 

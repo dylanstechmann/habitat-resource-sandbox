@@ -12,13 +12,34 @@ and harvests.
 ```sh
 python3 -B autonomy.py examples/subsurface-profiles.json --cycles 30
 python3 -B autonomy.py examples/subsurface-profiles.json --scenario moon-subsurface --cycles 10 --trace
+python3 -B cycle_study.py --cycles 365 --lunar-water-cost 4
 ```
 
 With the sample assumptions and deliveries disabled, the Earth fixture served
 all three loads over 720 hours. The lunar fixture first missed water demand at
 hour 168. The Mars fixture first missed food demand at hour 120. The
 [underground habitat study](docs/subsurface-autonomy.md) gives the inputs,
-resource balances, and the evidence still needed to evaluate full sustainability.
+resource balances and the one-year comparison. It also shows how an assumed
+power cost for collecting more lunar water can shift the bottleneck to
+electricity. The study identifies what still needs to be modeled to assess
+full sustainability.
+
+## Wastewater recovery and hydroponics
+
+Compare treating captured wastewater with bypassing treatment in the Earth,
+Moon and Mars fixtures. The treatment ledger tracks reclaimed water,
+fertilizer-equivalent nutrients, residual waste and electricity. Reclaimed
+water and nutrients enter the simulated hydroponic reservoirs.
+
+```sh
+python3 -B recycling.py examples/wastewater-recycling.json --cycles 30
+python3 -B recycling.py examples/wastewater-recycling.json --scenario moon-subsurface --no-exercise --trace
+```
+
+Solar generation and exercise generation are separate electricity inputs.
+Grow lighting is part of the base electrical load. The
+[wastewater model](docs/wastewater-recycling.md) describes the assumptions
+and the boundary between these resource budgets and water or fertilizer quality.
 
 ## Single-day disruptions
 
@@ -52,6 +73,18 @@ In the desert fixture's first six hours, a power-only outage stopped recovery of
 
 ## Offline indoor-grow aggregate import
 
+To test whether the wastewater treatment study could replace a farm's
+scheduled makeup water, run the bundled two-interval farm example:
+
+```sh
+python3 -B farm_water.py examples/indoor-grow-aggregate.json examples/farm-water-handoff.json examples/wastewater-recycling.json --scenario earth-underground --days 30
+```
+
+The same command accepts a full daily farm report and its reservoir handoff.
+Add `--makeup-budget` to see the extra water needed to serve withdrawals or
+maintain the farm reserve and restore its starting inventory.
+[Farm water budget comparison](docs/wastewater-recycling.md#how-much-farm-makeup-water-can-treatment-replace)
+
 `indoor_import.py` is a separate, standard-library-only **offline aggregate comparison/import adapter** for `rural-florida-agriculture` indoor interval output. It requires an explicit input path; it never discovers sibling repositories, reads a default producer path, accesses the network, or modifies `scenarios.json`.
 
 ```bash
@@ -79,6 +112,14 @@ The agent-run reserve calculation gave these minimum values for the hour 6–18 
 | Underwater | 78 | 96 | 126.00 | 126.00 |
 
 All four fixtures needed both more electricity in storage at the start and greater energy capacity. With continuous recovery, the desert fixture also needed 5.20 L more starting water. Each fixture's existing water capacity was sufficient for the modeled window.
+
+Use `--reserve-end ENERGY_KWH WATER_L` to calculate reserves for meeting both loads and leaving specified stocks at the end. The targets apply to every selected run, including both sides of an interruption comparison. The water target counts stored water. The report tracks pending recovery separately. Each reserve section records its target as `minimum_final_stock`.
+
+```bash
+python3 habitat.py scenarios.json --scenario desert-underground --interrupt 6 18 --reserve-end 12 20
+```
+
+In the interrupted desert fixture, retaining 12 kWh requires 60 kWh of starting energy and 96 kWh of capacity. Retaining 20 L requires 165.20 L of starting water and the same capacity. These values describe the one modeled day. Use the original `--reserve` option to calculate reserves with zero required end stock.
 
 The included standard-library checks cover selective and joint interruption boundaries, offline indoor aggregate import/provenance and validation, CLI output, deterministic reporting, delayed recovery, resource balance, and forward simulation at the calculated reserves. Run them with `python3 -B -m unittest -v` from this directory. See [the model reference](docs/model.md) for exact interval equations, units, reserve assumptions, and input validation, and [the life-support scope statement](docs/life-support-scope.md) for explicit exclusions. Input validation is implemented directly in `habitat.py`; no JSON Schema package is required.
 

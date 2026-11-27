@@ -27,13 +27,37 @@ running. Its assumed local supply contributes another 6 L per cycle.
 The scheduled 6 L delivery covers the difference. After that delivery stops,
 opening inventory temporarily hides the deficit.
 
+## Opening reserves and recurring supply
+
+`cycle_study.py` runs both shipment cases and adds sensitivity tests for
+opening stock and recurring local supply. It checks whether electricity,
+water, food and both pending credits return to an identical state at the same
+point in the schedule. A repeated state can still rely on shipments or miss
+demand. Check `period_imports` and `period_unmet` alongside the repeat.
+
+| Fixture | No shipments over 365 synthetic days | Opening stock sensitivity | Recurring supply sensitivity |
+| --- | --- | --- | --- |
+| Earth | Serves all three modeled loads and returns to the same state after days 1 and 2. | | |
+| Moon | Water runs short at hour 168, followed by food at hour 240. | Filling the opening tank moves the first water shortage to hour 324. | Adding 0.25 L/h of assumed local water at zero additional power cost serves all three loads. |
+| Mars | Food runs short at hour 120 and later misses 1 kg of demand per cycle. | Filling the opening pantry moves the first food shortage to hour 168. | Adding 0.5 kg of assumed harvest every 12 hours serves all three loads. |
+
+Use `--lunar-water-cost KWH_PER_L` to charge a scheduled electrical load for
+the extra 0.25 L/h in a separate lunar case. The illustrative value 4 adds
+1 kW in each interval, or 24 kWh per day. With that assumption, the first
+electricity shortfall starts at hour 36 and the recovery-dependent water
+shortfall starts at hour 96. The experiment charges demand for the extra
+water once. It still assumes the extra fresh inflow arrives and does not
+dispatch a collection subsystem separately when electricity falls short.
+
 ## Reproduce or change the experiment
 
 ```sh
 python3 -B autonomy.py examples/subsurface-profiles.json
 python3 -B autonomy.py examples/subsurface-profiles.json --scenario mars-subsurface --cycles 365
 python3 -B autonomy.py examples/subsurface-profiles.json --scenario moon-subsurface --cycles 10 --trace
-python3 -B -m unittest -v test_autonomy
+python3 -B cycle_study.py --cycles 365
+python3 -B cycle_study.py --cycles 365 --lunar-water-cost 4
+python3 -B -m unittest -v test_autonomy test_cycle_study
 ```
 
 Edit a copy of the profiles to change the stocks, capacities or schedule. Each
@@ -42,6 +66,9 @@ the last interval's stocks and pending recovery and harvest into the next cycle.
 The summary gives initial stock, ending stock, delivered and unmet demand,
 overflow, local inputs and external receipts. The trace exposes the per-step
 balance for each resource.
+
+The cycle study records SHA-256 digests of the profile and the three source
+files used to produce the report.
 
 | Input | Unit and timing |
 | --- | --- |
@@ -55,6 +82,10 @@ Fresh inflow in that simulator combines local makeup and imported water. The
 audit reports them separately. For each resource, start plus available inflow
 equals delivered demand plus overflow plus end. The final pending water and
 harvest are reported separately from usable stored stock.
+
+The [wastewater study](wastewater-recycling.md) explores how captured feed,
+treatment power and recovered nutrients interact with hydroponic demand. Run
+it separately from this bulk water and pantry audit.
 
 ## What full sustainability would require
 

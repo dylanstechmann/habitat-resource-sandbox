@@ -47,6 +47,22 @@ class CycleStudyTests(unittest.TestCase):
                 self.assertFalse(any(alternative["receipt_totals"].values()))
                 self.assertIsNotNone(alternative["first_exact_repeat"])
 
+    def test_lunar_collection_charges_only_the_extra_local_water(self):
+        result = study(PROFILES, 30, lunar_water_cost=4)
+        moon = {c["case"]: c for c in result["cases"] if c["scenario"] == "moon-subsurface"}
+        free = moon["more_local_water"]
+        powered = moon["more_local_water_with_power_cost"]
+        self.assertEqual(result["lunar_extra_water_cost_kwh_per_l"], 4)
+        self.assertEqual(powered["energy_demand_kwh"] - free["energy_demand_kwh"], 720)
+        self.assertIsNone(free["first_gap_hour"]["energy_kwh"])
+        self.assertEqual(powered["first_gap_hour"]["energy_kwh"], 36)
+        self.assertFalse(any(powered["receipt_totals"].values()))
+
+    def test_lunar_collection_rejects_invalid_costs(self):
+        for invalid in (-1, float("inf"), float("nan")):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                study(PROFILES, 1, lunar_water_cost=invalid)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -41,15 +41,15 @@ def ledger(stored, supply, demand, capacity):
     }
 
 
-def _reserve_stock(deficits, initial, capacity):
-    required = 0.0
-    minimum_capacity = 0.0
+def _reserve_stock(deficits, initial, capacity, final_target):
+    required = 0.0 if final_target is None else final_target
+    minimum_capacity = required
     for deficit in reversed(deficits):
         # Carry enough stock into each interval to serve its demand and leave
         # the stock required at the start of the following interval.
         required = max(0.0, required + deficit)
         minimum_capacity = max(minimum_capacity, required)
-    return {
+    report = {
         "initial_stock": initial,
         "capacity": capacity,
         "minimum_initial_stock": required,
@@ -57,9 +57,17 @@ def _reserve_stock(deficits, initial, capacity):
         "additional_initial_stock": max(0.0, required - initial),
         "additional_capacity": max(0.0, minimum_capacity - capacity),
     }
+    if final_target is not None:
+        report["minimum_final_stock"] = final_target
+    return report
 
 
-def _reserve_report(scenario, intervals, recovery_fraction):
+def _reserve_report(scenario, intervals, recovery_fraction, reserve_end):
+    energy_target = water_target = None
+    if reserve_end is not None:
+        energy_target, water_target = reserve_end
+        energy_target = amount(energy_target, "final energy target")
+        water_target = amount(water_target, "final water target")
     energy_deficits = []
     water_deficits = []
     recovered_l = 0.0
@@ -72,13 +80,13 @@ def _reserve_report(scenario, intervals, recovery_fraction):
         recovered_l = water_demand_l * recovery_fraction
     return {
         "energy_kwh": _reserve_stock(energy_deficits, scenario["initial_energy_kwh"],
-                                     scenario["energy_capacity_kwh"]),
+                                     scenario["energy_capacity_kwh"], energy_target),
         "water_l": _reserve_stock(water_deficits, scenario["initial_water_l"],
-                                  scenario["water_capacity_l"]),
+                                  scenario["water_capacity_l"], water_target),
     }
 
 
-def simulate(scenario, *, reserve=False):
+def simulate(scenario, *, reserve=False, reserve_end=None):
     battery, battery_capacity = storage(
         scenario["initial_energy_kwh"], scenario["energy_capacity_kwh"], "energy"
     )
@@ -135,8 +143,8 @@ def simulate(scenario, *, reserve=False):
         "water_pending_recovery_l": recovery_l,
         "intervals": trace,
     }
-    if reserve:
-        result["reserve"] = _reserve_report(scenario, trace, recovery_fraction)
+    if reserve or reserve_end is not None:
+        result["reserve"] = _reserve_report(scenario, trace, recovery_fraction, reserve_end)
     return result
 
 
@@ -163,10 +171,10 @@ def shortfall_profile(run, resource, step_hours):
     }
 
 
-def compare_interruption(scenario, start_hour, end_hour, *, reserve=False, supply="both"):
+def compare_interruption(scenario, start_hour, end_hour, *, reserve=False, supply="both", reserve_end=None):
     if not isinstance(supply, str) or supply not in INTERRUPTION_INPUTS:
         raise ValueError("interrupted supply must be both, power or water")
-    baseline = simulate(scenario, reserve=reserve)
+    baseline = simulate(scenario, reserve=reserve, reserve_end=reserve_end)
     step_hours = scenario["step_hours"]
     steps = list(scenario["steps"])
     if not 0 <= start_hour < end_hour:
@@ -188,7 +196,7 @@ def compare_interruption(scenario, start_hour, end_hour, *, reserve=False, suppl
 
     for index in range(start, stop):
         steps[index] = {**steps[index], **INTERRUPTION_INPUTS[supply]}
-    interrupted = simulate({**scenario, "steps": steps}, reserve=reserve)
+    interrupted = simulate({**scenario, "steps": steps}, reserve=reserve, reserve_end=reserve_end)
     summary = {}
     for resource in ("energy_kwh", "water_l"):
         total = f"unmet_{resource}"
@@ -215,6 +223,8 @@ def main():
                         help="Select the external supply to interrupt (default: both)")
     parser.add_argument("--reserve", action="store_true",
                         help="Report starting stocks and capacities needed to meet all modeled demand")
+    parser.add_argument("--reserve-end", type=float, nargs=2, metavar=("ENERGY_KWH", "WATER_L"),
+                        help="Report reserves that also leave these stocks at the end of the run")
     args = parser.parse_args()
     if args.interrupt_supply is not None and args.interrupt is None:
         parser.error("--interrupt-supply requires --interrupt")
@@ -236,12 +246,15 @@ def main():
             raise ValueError("no matching scenarios")
         report = {"data_kind": "synthetic"}
         if args.interrupt is None:
-            report["runs"] = [simulate(item, reserve=args.reserve) for item in candidates]
+            report["runs"] = [
+                simulate(item, reserve=args.reserve, reserve_end=args.reserve_end) for item in candidates
+            ]
         else:
             start, end = args.interrupt
             report["interruption_hours"] = {"start": start, "end": end}
             report["runs"] = [
-                compare_interruption(item, start, end, reserve=args.reserve, supply=args.interrupt_supply or "both")
+                compare_interruption(item, start, end, reserve=args.reserve,
+                                     supply=args.interrupt_supply or "both", reserve_end=args.reserve_end)
                 for item in candidates
             ]
     except (OSError, KeyError, TypeError, ValueError) as exc:
