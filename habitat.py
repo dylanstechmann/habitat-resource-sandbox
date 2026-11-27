@@ -7,6 +7,13 @@ from pathlib import Path
 import re
 
 
+INTERRUPTION_INPUTS = {
+    "both": {"supply_kw": 0, "import_l_per_hour": 0},
+    "power": {"supply_kw": 0},
+    "water": {"import_l_per_hour": 0},
+}
+
+
 def amount(value, field, *, limit=1_000_000_000):
     if type(value) not in (int, float) or not 0 <= value <= limit:
         raise ValueError(f"{field} must be a finite number between 0 and {limit}")
@@ -156,7 +163,9 @@ def shortfall_profile(run, resource, step_hours):
     }
 
 
-def compare_interruption(scenario, start_hour, end_hour, *, reserve=False):
+def compare_interruption(scenario, start_hour, end_hour, *, reserve=False, supply="both"):
+    if not isinstance(supply, str) or supply not in INTERRUPTION_INPUTS:
+        raise ValueError("interrupted supply must be both, power or water")
     baseline = simulate(scenario, reserve=reserve)
     step_hours = scenario["step_hours"]
     steps = list(scenario["steps"])
@@ -178,7 +187,7 @@ def compare_interruption(scenario, start_hour, end_hour, *, reserve=False):
         raise ValueError(f"{baseline['scenario']}: interruption must cover at least one interval")
 
     for index in range(start, stop):
-        steps[index] = {**steps[index], "supply_kw": 0, "import_l_per_hour": 0}
+        steps[index] = {**steps[index], **INTERRUPTION_INPUTS[supply]}
     interrupted = simulate({**scenario, "steps": steps}, reserve=reserve)
     summary = {}
     for resource in ("energy_kwh", "water_l"):
@@ -188,7 +197,10 @@ def compare_interruption(scenario, start_hour, end_hour, *, reserve=False):
             "baseline": shortfall_profile(baseline, resource, step_hours),
             "interrupted": shortfall_profile(interrupted, resource, step_hours),
         }
-    return {"scenario": baseline["scenario"], "summary": summary, "baseline": baseline, "interrupted": interrupted}
+    result = {"scenario": baseline["scenario"], "summary": summary, "baseline": baseline, "interrupted": interrupted}
+    if supply != "both":
+        result["interrupted_supply"] = supply
+    return result
 
 
 def main():
@@ -197,11 +209,15 @@ def main():
     parser.add_argument("--scenario", help="Run only this scenario ID")
     parser.add_argument(
         "--interrupt", type=float, nargs=2, metavar=("START_HOUR", "END_HOUR"),
-        help="Compare each run with external energy supply and water imports interrupted over this interval",
+        help="Compare each run with a supply interruption over this interval",
     )
+    parser.add_argument("--interrupt-supply", choices=INTERRUPTION_INPUTS,
+                        help="Select the external supply to interrupt (default: both)")
     parser.add_argument("--reserve", action="store_true",
                         help="Report starting stocks and capacities needed to meet all modeled demand")
     args = parser.parse_args()
+    if args.interrupt_supply is not None and args.interrupt is None:
+        parser.error("--interrupt-supply requires --interrupt")
     try:
         document = json.loads(args.scenarios.read_text(encoding="utf-8"))
         if document["schema"] != "synthetic-habitat-resources/1":
@@ -224,7 +240,10 @@ def main():
         else:
             start, end = args.interrupt
             report["interruption_hours"] = {"start": start, "end": end}
-            report["runs"] = [compare_interruption(item, start, end, reserve=args.reserve) for item in candidates]
+            report["runs"] = [
+                compare_interruption(item, start, end, reserve=args.reserve, supply=args.interrupt_supply or "both")
+                for item in candidates
+            ]
     except (OSError, KeyError, TypeError, ValueError) as exc:
         parser.error(str(exc))
     print(json.dumps(report, indent=2, allow_nan=False))
