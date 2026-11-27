@@ -83,6 +83,10 @@ audit reports them separately. For each resource, start plus available inflow
 equals delivered demand plus overflow plus end. The final pending water and
 harvest are reported separately from usable stored stock.
 
+The [wastewater study](wastewater-recycling.md) explores how captured feed,
+treatment power and recovered nutrients interact with hydroponic demand. Run
+it separately from this bulk water and pantry audit.
+
 ## What full sustainability would require
 
 A finite run can expose an import dependency or a declining stock.
