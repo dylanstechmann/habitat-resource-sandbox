@@ -1,0 +1,116 @@
+{
+  "schema": "synthetic-underground-autonomy/1",
+  "profiles": [
+    {
+      "id": "earth-underground",
+      "step_hours": 12,
+      "initial_energy_kwh": 36,
+      "energy_capacity_kwh": 72,
+      "initial_water_l": 24,
+      "water_capacity_l": 100,
+      "recovery_fraction": 0.75,
+      "initial_food_kg": 3,
+      "food_capacity_kg": 8,
+      "steps": [
+        {
+          "event": "higher local supply",
+          "onsite_kw": 12,
+          "import_kw": 0,
+          "load_kw": 5,
+          "local_water_l_per_hour": 0.5,
+          "import_water_l_per_hour": 0,
+          "demand_l_per_hour": 2,
+          "potential_harvest_kg": 1,
+          "food_demand_kg": 1,
+          "import_food_kg": 0
+        },
+        {
+          "event": "lower local supply",
+          "onsite_kw": 0,
+          "import_kw": 0,
+          "load_kw": 5,
+          "local_water_l_per_hour": 0.5,
+          "import_water_l_per_hour": 0,
+          "demand_l_per_hour": 2,
+          "potential_harvest_kg": 1,
+          "food_demand_kg": 1,
+          "import_food_kg": 0
+        }
+      ]
+    },
+    {
+      "id": "moon-subsurface",
+      "step_hours": 12,
+      "initial_energy_kwh": 36,
+      "energy_capacity_kwh": 72,
+      "initial_water_l": 60,
+      "water_capacity_l": 100,
+      "recovery_fraction": 0.75,
+      "initial_food_kg": 6,
+      "food_capacity_kg": 8,
+      "steps": [
+        {
+          "event": "higher local supply",
+          "onsite_kw": 8,
+          "import_kw": 0,
+          "load_kw": 5,
+          "local_water_l_per_hour": 0.25,
+          "import_water_l_per_hour": 0.25,
+          "demand_l_per_hour": 2,
+          "potential_harvest_kg": 1,
+          "food_demand_kg": 1,
+          "import_food_kg": 0
+        },
+        {
+          "event": "lower local supply",
+          "onsite_kw": 2,
+          "import_kw": 0,
+          "load_kw": 5,
+          "local_water_l_per_hour": 0.25,
+          "import_water_l_per_hour": 0.25,
+          "demand_l_per_hour": 2,
+          "potential_harvest_kg": 1,
+          "food_demand_kg": 1,
+          "import_food_kg": 0
+        }
+      ]
+    },
+    {
+      "id": "mars-subsurface",
+      "step_hours": 12,
+      "initial_energy_kwh": 36,
+      "energy_capacity_kwh": 72,
+      "initial_water_l": 36,
+      "water_capacity_l": 100,
+      "recovery_fraction": 0.75,
+      "initial_food_kg": 6,
+      "food_capacity_kg": 8,
+      "steps": [
+        {
+          "event": "higher local supply",
+          "onsite_kw": 6,
+          "import_kw": 0,
+          "load_kw": 5,
+          "local_water_l_per_hour": 0.5,
+          "import_water_l_per_hour": 0,
+          "demand_l_per_hour": 2,
+          "potential_harvest_kg": 1,
+          "food_demand_kg": 1.5,
+          "import_food_kg": 0.5
+        },
+        {
+          "event": "lower local supply",
+          "onsite_kw": 4,
+          "import_kw": 0,
+          "load_kw": 5,
+          "local_water_l_per_hour": 0.5,
+          "import_water_l_per_hour": 0,
+          "demand_l_per_hour": 2,
+          "potential_harvest_kg": 1,
+          "food_demand_kg": 1.5,
+          "import_food_kg": 0.5
+        }
+      ]
+    }
+  ]
+}

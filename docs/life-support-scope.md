@@ -2,7 +2,7 @@
 
 ## Synthetic resource software only
 
-Habitat Resource Sandbox is an AI-assisted hobby and learning model of two anonymous resource ledgers: aggregate electrical energy and bulk water volume. Its scenarios, outage windows, recovery fractions, stock calculations, and reports are synthetic illustrations. They are not occupancy approval, life-support certification, a safety case, or recommendations for a real habitat.
+Habitat Resource Sandbox is an AI-assisted hobby and learning model of aggregate electrical energy and bulk water. The subsurface autonomy study also tracks dry food mass in a pantry. Its scenarios, outage windows, recovery fractions, stock calculations, and reports are synthetic illustrations. They are not occupancy approval, life-support certification, a safety case, or recommendations for a real habitat.
 
 No output establishes that a habitat is safe to occupy or operate. The reserve calculation applies only to the entered synthetic loads and its stated idealized assumptions; it is not an occupancy sizing method and does not establish required reserves for people.
 
@@ -13,7 +13,7 @@ The software does **not** model or verify any of the following:
 - **Atmosphere:** oxygen and carbon-dioxide inventories, partial pressures, ventilation, trace contaminants, atmospheric regeneration, or breathable-air quality.
 - **Thermal conditions and humidity:** heat generation or rejection, temperature control, condensation, humidity, or environmental limits.
 - **Water quality:** potability, contaminants, microbial control, treatment performance, or whether the simplified recovered-water stream is usable for any particular purpose.
-- **Food:** nutrition, calories, food storage, preparation, or agricultural production.
+- **Food:** nutrition, calories, spoilage, food preparation, and agricultural production. The autonomy study takes potential harvest as an input and tracks its mass through ideal storage.
 - **Waste:** human or solid waste, hazardous waste, sanitation, or detailed wastewater chemistry. The single water-recovery fraction is not a waste-treatment model.
 - **Structural integrity:** loads, materials, fatigue, damage, foundations, or structural safety factors.
 - **Pressure:** vessel or compartment integrity, pressure differentials, leaks, decompression, or pressure-control systems.
