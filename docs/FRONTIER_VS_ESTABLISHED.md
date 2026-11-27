@@ -14,6 +14,8 @@ This log separates reproduced software behavior from open modeling work and phys
 
 These are reproducible observations about the checked-in deterministic software and synthetic fixtures. They do not make the fixtures measured or representative of a real site.
 
+**Post-merge recheck (2026-11-27):** After merging `origin/main` at `33f3f67638c22c1148073f905e02ee048baa0b60`, the full suite expanded to **40 passing tests**, including all 27 above. The default 30- and 365-day studies retained identical non-`sha256` fields and all ten case payloads. Whole-file `cmp` now differs only because the reports record updated SHA-256 digests for `cycle_study.py` and `habitat.py`; both new digests were verified against the merged sources.
+
 ## Frontier and open modeling work
 
 - Assign explicit energy, labor, equipment, source, timing, loss, and unknown-value accounting to local water collection, treatment, agriculture, and harvest.
