@@ -73,6 +73,16 @@ In the desert fixture's first six hours, a power-only outage stopped recovery of
 
 ## Offline indoor-grow aggregate import
 
+To test whether the wastewater treatment study could replace a farm's
+scheduled makeup water, run the bundled two-interval farm example:
+
+```sh
+python3 -B farm_water.py examples/indoor-grow-aggregate.json examples/farm-water-handoff.json examples/wastewater-recycling.json --scenario earth-underground --days 30
+```
+
+The same command accepts a full daily farm report and its reservoir handoff.
+[Farm water budget comparison](docs/wastewater-recycling.md#how-much-farm-makeup-water-can-treatment-replace)
+
 `indoor_import.py` is a separate, standard-library-only **offline aggregate comparison/import adapter** for `rural-florida-agriculture` indoor interval output. It requires an explicit input path; it never discovers sibling repositories, reads a default producer path, accesses the network, or modifies `scenarios.json`.
 
 ```bash
