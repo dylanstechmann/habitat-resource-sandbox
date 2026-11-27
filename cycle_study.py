@@ -7,6 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 
 from autonomy import audit
+from habitat import amount
 
 
 HERE = Path(__file__).resolve().parent
@@ -14,6 +15,7 @@ PROFILES = HERE / "examples" / "subsurface-profiles.json"
 RESOURCES = ("energy_kwh", "water_l", "food_kg")
 IMPORTS = ("import_energy_kwh", "import_water_l", "import_food_kg")
 LOCAL = ("onsite_energy_kwh", "local_water_l", "harvest_for_next_kg")
+ADDED_LUNAR_WATER_L_PER_HOUR = 0.25
 
 
 def cycle_repeat(rows, steps_per_cycle):
@@ -45,7 +47,7 @@ def cycle_repeat(rows, steps_per_cycle):
     return None
 
 
-def cases(profile):
+def cases(profile, lunar_water_cost):
     yield "scheduled", "Scheduled receipts and original stocks", profile, True
     yield "no_shipments", "Zero receipts and original stocks", profile, False
     if profile["id"] == "moon-subsurface":
@@ -54,8 +56,16 @@ def cases(profile):
         yield "full_water_tank", "Zero receipts, start with a full water tank", reserve, False
         local = deepcopy(profile)
         for step in local["steps"]:
-            step["local_water_l_per_hour"] += 0.25
+            step["local_water_l_per_hour"] += ADDED_LUNAR_WATER_L_PER_HOUR
         yield "more_local_water", "Zero receipts, add 0.25 L/h of assumed local water", local, False
+        if lunar_water_cost is not None:
+            powered = deepcopy(local)
+            added_kw = lunar_water_cost * ADDED_LUNAR_WATER_L_PER_HOUR
+            for step in powered["steps"]:
+                step["load_kw"] += added_kw
+            yield ("more_local_water_with_power_cost",
+                   "Zero receipts, add 0.25 L/h of assumed local water and its scheduled electricity load",
+                   powered, False)
     if profile["id"] == "mars-subsurface":
         reserve = deepcopy(profile)
         reserve["initial_food_kg"] = reserve["food_capacity_kg"]
@@ -66,7 +76,9 @@ def cases(profile):
         yield "more_local_harvest", "Zero receipts, add 0.5 kg of potential harvest per interval", local, False
 
 
-def study(profile_path, cycles):
+def study(profile_path, cycles, *, lunar_water_cost=None):
+    if lunar_water_cost is not None:
+        lunar_water_cost = amount(lunar_water_cost, "lunar water collection cost (kWh/L)")
     document = json.loads(profile_path.read_bytes())
     if document["schema"] != "synthetic-underground-autonomy/1":
         raise ValueError("expected the underground autonomy profile format")
@@ -74,24 +86,32 @@ def study(profile_path, cycles):
     inputs = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in sources}
     results = []
     for profile in document["profiles"]:
-        for name, change, scenario, shipments in cases(profile):
+        for name, change, scenario, shipments in cases(profile, lunar_water_cost):
             run = audit(scenario, cycles, deliveries=shipments, trace=True)
-            results.append({
+            result = {
                 "scenario": profile["id"], "case": name, "assumption": change,
                 "duration_hours": run["duration_hours"], "receipt_totals": run["external_receipts"],
                 "first_gap_hour": {k: run["resources"][k]["first_shortfall_hour"] for k in RESOURCES},
                 "unmet_totals": {k: run["resources"][k]["unmet"] for k in RESOURCES},
                 "first_exact_repeat": cycle_repeat(run["intervals"], len(scenario["steps"])),
-            })
-    return {"schema": "underground-cycle-study/1", "cycles": cycles, "sha256": inputs, "cases": results}
+            }
+            if lunar_water_cost is not None:
+                result["energy_demand_kwh"] = run["resources"]["energy_kwh"]["demand"]
+            results.append(result)
+    report = {"schema": "underground-cycle-study/1", "cycles": cycles, "sha256": inputs, "cases": results}
+    if lunar_water_cost is not None:
+        report["lunar_extra_water_cost_kwh_per_l"] = lunar_water_cost
+    return report
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cycles", type=int, default=30)
+    parser.add_argument("--lunar-water-cost", type=float, metavar="KWH_PER_L",
+                        help="Also charge electricity for the extra 0.25 L/h in the synthetic Moon case")
     args = parser.parse_args()
     try:
-        result = study(PROFILES, args.cycles)
+        result = study(PROFILES, args.cycles, lunar_water_cost=args.lunar_water_cost)
     except ValueError as error:
         parser.error(str(error))
     print(json.dumps(result, indent=2, allow_nan=False))
